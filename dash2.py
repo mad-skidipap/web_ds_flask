@@ -1,59 +1,17 @@
-from flask import Flask
-from flask import render_template
 import dash
-import dash_table
-import dash_html_components as html
-import dash_core_components as dcc
 import dash_bootstrap_components as dbc
+import dash_core_components as dcc
+import dash_html_components as html
+import pandas as pd
+import plotly.graph_objs as go
 from dash.dependencies import Input, Output
 from sklearn import datasets
 from sklearn.cluster import KMeans
-import plotly.graph_objs as go
-import pandas as pd 
 
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
-from dash.dependencies import Input, Output
-
-import joblib
-import plotly.graph_objs as go
-
-
-model = joblib.load('model.dmp')
-
-app = Flask(__name__)
-df = pd.read_csv('https://raw.githubusercontent.com/vincentarelbundock/Rdatasets/master/csv/datasets/iris.csv')
 iris_raw = datasets.load_iris()
 iris = pd.DataFrame(iris_raw["data"], columns=iris_raw["feature_names"])
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-dash1 = dash.Dash(
-        __name__, 
-        server=app, 
-        routes_pathname_prefix='/dash1/')
-
-dash1.layout = html.Div([
-    dcc.Link("back", href='/', refresh="True"),
-    dash_table.DataTable(
-        id='table',
-        columns=[{"name": i, "id": i} for i in df.columns],
-        data=df.to_dict("rows"),
-        )
-    ])
-dash3 = dash.Dash(
-    __name__, 
-    server=app, 
-    routes_pathname_prefix='/dash3/')
-
-dash2 = dash.Dash(
-            __name__, 
-            server=app, 
-            routes_pathname_prefix='/dash2/',
-            external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 controls = dbc.Card(
     [
@@ -91,14 +49,14 @@ controls = dbc.Card(
     body=True,
 )
 
-dash2.layout = dbc.Container(
+app.layout = dbc.Container(
     [
-        html.H1("Iris k-means clustering"),
+        html.H1("Clustering Iris"),
         html.Hr(),
         dbc.Row(
             [
                 dbc.Col(controls, md=4),
-                dbc.Col(dcc.Graph(id="cluster-graph"), md=8),
+                dbc.Col(dcc.Graph(id="cluster-graph")),
             ],
             align="center",
         ),
@@ -107,7 +65,7 @@ dash2.layout = dbc.Container(
 )
 
 
-@dash2.callback(
+@app.callback(
     Output("cluster-graph", "figure"),
     [
         Input("x-variable", "value"),
@@ -160,39 +118,13 @@ def filter_options(v):
 
 
 # functionality is the same for both dropdowns, so we reuse filter_options
-dash2.callback(Output("x-variable", "options"), [Input("y-variable", "value")])(
+app.callback(Output("x-variable", "options"), [Input("y-variable", "value")])(
     filter_options
 )
-dash2.callback(Output("y-variable", "options"), [Input("x-variable", "value")])(
+app.callback(Output("y-variable", "options"), [Input("x-variable", "value")])(
     filter_options
 )
 
-dash3.layout = html.Div(children=[
-    html.H1(children='AdaBoost', style={'textAlign': 'center'}),
 
-    html.Div(children=[
-        html.Label('Input your Features : '),
-        dcc.Input(id='input1', placeholder='features 1', type='text'),
-        dcc.Input(id='input2', placeholder='features 2', type='text'),
-        dcc.Input(id='input3', placeholder='features 3', type='text'),
-        dcc.Input(id='input4', placeholder='features 4', type='text'),
-        html.Div(id='result')
-    ], style={'textAlign': 'center'}),
-])
-
-@dash3.callback(
-    Output(component_id='result', component_property='children'),
-    [Input(component_id='input1', component_property='value'),
-    Input(component_id='input2', component_property='value'),
-    Input(component_id='input3', component_property='value'),
-    Input(component_id='input4', component_property='value')])
-
-def update_years_of_experience_input(input1, input2, input3, input4):
-    try:
-        prediction = model.predict([[input1,input2,input3,input4]])
-        return 'Prediction is {}'.format(prediction)
-    except ValueError:
-        return 'Unable to give prediction'
-
-if __name__ == "__main__" :
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run_server(debug=True, port=8888)
